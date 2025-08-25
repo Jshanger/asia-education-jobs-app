@@ -1,4 +1,4 @@
-// ---------- helpers ----------
+// --------- helpers ----------
 function mergeDedup(existing, incoming) {
   const toKey = (j) => (j?.original_url || j?.apply_url || j?.id || '').toString().trim();
   const map = new Map(existing.map(j => [toKey(j), j]));
@@ -8,11 +8,9 @@ function mergeDedup(existing, incoming) {
 function cleanText(html) {
   if (!html) return '';
   return String(html)
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;|&#160;/g, ' ')
-    .replace(/&amp;/g, '&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
-    .replace(/&#\d+;|&[a-z]+;/gi, ' ')
-    .replace(/\s+/g,' ').trim();
+    .replace(/<[^>]*>/g, ' ').replace(/&nbsp;|&#160;/g,' ')
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+    .replace(/&#\d+;|&[a-z]+;/gi,' ').replace(/\s+/g,' ').trim();
 }
 function sanitizeDesc(s) {
   const t = cleanText(s);
@@ -22,7 +20,7 @@ function sanitizeDesc(s) {
 function enrichFromTitle(job) {
   if (!job.school && job.title && job.title.includes(':')) {
     const [left, ...rest] = job.title.split(':'); const L = left.trim();
-    if (L.length>3 && L===L.toUpperCase()) { job.school = L; job.title = rest.join(':').trim() || job.title; }
+    if (L.length>3 && L===L.toUpperCase()) { job.school=L; job.title=rest.join(':').trim()||job.title; }
   }
   return job;
 }
@@ -54,6 +52,10 @@ class JobApp {
     this.$applyBtn   = document.getElementById('applyJobBtn');
 
     this.bindEvents();
+
+    // EXTRA SAFEGUARD: ensure modal is hidden on startup
+    this.hideModal();
+
     this.init();
   }
 
@@ -70,18 +72,18 @@ class JobApp {
   }
 
   async init() {
-    await this.loadRealJobData();    // local JSON
-    await this.loadFromFunction();   // live RSS via Netlify Function
+    await this.loadRealJobData();
+    await this.loadFromFunction();
     this.applyFilters();
     this.populateFilters();
     this.renderJobs();
     this.updateStats();
   }
 
-  // ---------- data loaders ----------
+  // --------- data loaders ---------
   async loadRealJobData() {
     try {
-      const safeFetch = async (p) => { const r = await fetch(p, {cache:'no-store'}); if(!r.ok) throw new Error(`${p} ${r.status}`); return r.json(); };
+      const safeFetch = async (p) => { const r = await fetch(p,{cache:'no-store'}); if(!r.ok) throw new Error(`${p} ${r.status}`); return r.json(); };
       const [db1, db2] = await Promise.allSettled([
         safeFetch('real_asia_education_jobs.json'),
         safeFetch('asia_education_jobs_database.json'),
@@ -128,7 +130,7 @@ class JobApp {
     }
   }
 
-  // ---------- filters / render ----------
+  // --------- filters / render ---------
   populateFilters() {
     const uniq = (a)=>[...new Set(a.filter(Boolean))].sort((x,y)=>x.localeCompare(y));
     const countries = uniq(this.jobs.map(j=>j.country));
@@ -162,6 +164,7 @@ class JobApp {
       const card=document.createElement('div'); card.className='job-card';
       const desc = job.description ? `<p class="job-desc">${job.description}</p>` : '';
 
+      // TITLE is an anchor → opens original_url in a new tab
       card.innerHTML = `
         <div class="job-card-header">
           <h3 class="job-title">
@@ -183,7 +186,7 @@ class JobApp {
         </div>
       `;
 
-      // Clicking Details opens modal
+      // ONLY Details opens the modal
       card.querySelector('[data-open-modal]')?.addEventListener('click', ()=> this.openJobModal(job));
       c.appendChild(card);
     });
@@ -191,7 +194,7 @@ class JobApp {
     this.updateStats();
   }
 
-  // ---------- modal ----------
+  // --------- modal ---------
   openJobModal(job) {
     if (!job) return;
     const viewUrl  = job.original_url || job.apply_url || '#';
@@ -211,9 +214,13 @@ class JobApp {
     this.$modal?.classList.remove('hidden');
     this.$modal?.setAttribute('aria-hidden','false');
   }
-  hideModal(){ this.$modal?.classList.add('hidden'); this.$modal?.setAttribute('aria-hidden','true'); }
 
-  // ---------- stats ----------
+  hideModal(){
+    this.$modal?.classList.add('hidden');
+    this.$modal?.setAttribute('aria-hidden','true');
+  }
+
+  // --------- stats ---------
   updateStats(){
     if (this.$statCount)   this.$statCount.textContent   = `${this.filteredJobs.length} job${this.filteredJobs.length===1?'':'s'}`;
     if (this.$statUpdated) this.$statUpdated.textContent = `Updated: ${this.lastUpdate ? this.lastUpdate.toLocaleString() : '—'}`;
@@ -222,6 +229,7 @@ class JobApp {
 }
 
 document.addEventListener('DOMContentLoaded',()=>new JobApp());
+
 
 
 
