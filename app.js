@@ -1,72 +1,65 @@
-// app.js — Updated to support more reliable job loading from new fetch_jobs endpoint
+document.addEventListener("DOMContentLoaded", async () => {
+  const jobsContainer = document.getElementById("jobsContainer");
+  const statCount = document.getElementById("statCount");
+  const statUpdated = document.getElementById("statUpdated");
+  const statNext = document.getElementById("statNext");
 
-const API_ENDPOINT = '/.netlify/functions/fetch_jobs';
-
-async function fetchJobs() {
-  const countEl = document.getElementById('statCount');
-  const updatedEl = document.getElementById('statUpdated');
-  const nextCheckEl = document.getElementById('statNext');
-  const jobsContainer = document.getElementById('jobsContainer');
-  const emptyState = document.getElementById('emptyState');
-
-  try {
-    const response = await fetch(`${API_ENDPOINT}?debug=1`);
-    if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
-
-    const data = await response.json();
-    const jobs = data.jobs || [];
-
-    // Show stats
-    countEl.textContent = `${jobs.length} jobs`;
-    updatedEl.textContent = `Updated: ${formatDateTime(data.lastUpdated)}`;
-    nextCheckEl.textContent = `Next check: ${formatDateTime(data.nextUpdate)}`;
-
-    // Render jobs
-    jobsContainer.innerHTML = '';
-    emptyState.classList.toggle('hidden', jobs.length > 0);
-
-    jobs.forEach(job => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.innerHTML = `
-        <h3 class="job-title">${job.title}</h3>
-        <p class="muted">${job.school || 'Unknown'} • ${job.location || ''}</p>
-        <p>${job.description || ''}</p>
-        <p class="muted">${job.category || ''} ${job.level || ''}</p>
-        <p class="muted">Posted: ${job.posted || '—'} Deadline: ${job.deadline || '—'}</p>
-        <button class="btn btn-outline" onclick="showJobModal(${encodeURIComponent(JSON.stringify(job))})">Details</button>
-      `;
-      jobsContainer.appendChild(card);
+  // Utility: format date
+  const formatDate = (d) =>
+    new Date(d).toLocaleDateString("en-GB", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
     });
-  } catch (err) {
-    console.error('Error fetching jobs:', err);
-    countEl.textContent = 'Error loading jobs.';
-    updatedEl.textContent = 'Updated: —';
-    nextCheckEl.textContent = 'Next check: —';
-  }
-}
 
-function formatDateTime(timestamp) {
-  if (!timestamp) return '—';
-  const dt = new Date(timestamp);
-  return dt.toLocaleString();
-}
+  // Load and render jobs
+  const loadJobs = async () => {
+    try {
+      const res = await fetch("/.netlify/functions/fetch_jobs?debug=1");
 
-function showJobModal(encodedJob) {
-  const job = JSON.parse(decodeURIComponent(encodedJob));
-  document.getElementById('modalJobTitle').textContent = job.title;
-  document.getElementById('modalMeta').textContent = `${job.school || ''} • ${job.location || ''}`;
-  document.getElementById('modalJobDescription').textContent = job.description || '';
-  document.getElementById('viewPostingBtn').href = job.link || '#';
-  document.getElementById('applyJobBtn').href = job.link || '#';
-  document.getElementById('jobModal').classList.remove('hidden');
-}
+      if (!res.ok) {
+        throw new Error(`Fetch failed: ${res.status}`);
+      }
 
-document.getElementById('closeModal').onclick = () => {
-  document.getElementById('jobModal').classList.add('hidden');
-};
+      const jobs = await res.json();
 
-document.addEventListener('DOMContentLoaded', fetchJobs);
+      if (!Array.isArray(jobs) || jobs.length === 0) {
+        throw new Error("No jobs found in response.");
+      }
+
+      // Update stats
+      statCount.textContent = `${jobs.length} jobs`;
+      statUpdated.textContent = `Updated: ${formatDate(new Date())}`;
+      statNext.textContent = `Next check: ${formatDate(
+        new Date(Date.now() + 6 * 60 * 60 * 1000)
+      )}`; // every 6 hrs
+
+      // Clear previous
+      jobsContainer.innerHTML = "";
+
+      // Render each job
+      jobs.forEach((job) => {
+        const card = document.createElement("div");
+        card.className = "job-card";
+        card.innerHTML = `
+          <h3><a href="${job.link}" target="_blank">${job.title}</a></h3>
+          <p><strong>${job.source || "Unknown Source"}</strong></p>
+          <p>${job.content || "No description available."}</p>
+          <p class="muted">Posted: ${job.pubDate ? formatDate(job.pubDate) : "—"}</p>
+        `;
+        jobsContainer.appendChild(card);
+      });
+    } catch (err) {
+      console.error("Fetch error:", err.message);
+      statCount.textContent = "Error loading jobs.";
+      statUpdated.textContent = "Updated: —";
+      statNext.textContent = "Next check: —";
+      jobsContainer.innerHTML = "<p>⚠️ Could not load job data.</p>";
+    }
+  };
+
+  await loadJobs();
+});
 
 
 
