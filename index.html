@@ -11,12 +11,8 @@
     <h1>Asia Education Jobs</h1>
     <div class="controls">
       <input id="searchInput" type="search" placeholder="Search title, school, location..." />
-      <select id="countryFilter">
-        <option value="">All countries</option>
-      </select>
-      <select id="categoryFilter">
-        <option value="">All categories</option>
-      </select>
+      <select id="countryFilter"><option value="">All countries</option></select>
+      <select id="categoryFilter"><option value="">All categories</option></select>
       <select id="sortBy">
         <option value="date_desc">Newest</option>
         <option value="date_asc">Oldest</option>
@@ -26,7 +22,7 @@
   </header>
 
   <main class="container">
-    <section id="statsBar" class="stats">
+    <section class="stats">
       <span id="statCount">0 jobs</span>
       <span id="statUpdated">Updated: —</span>
       <span id="statNext">Next check: —</span>
@@ -40,7 +36,7 @@
     <section id="jobsContainer" class="grid"></section>
   </main>
 
-  <!-- Modal -->
+  <!-- Modal (starts hidden; JS also forces hidden) -->
   <div id="jobModal" class="modal hidden" aria-hidden="true">
     <div class="modal-box">
       <button id="closeModal" class="close-btn" aria-label="Close">×</button>
@@ -57,4 +53,5 @@
   <script src="app.js"></script>
 </body>
 </html>
+
 
