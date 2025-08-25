@@ -1,46 +1,38 @@
 /* =========================================
-   Curated regions & categories (Asia-wide)
+   CURATED ASIA COUNTRIES + CATEGORIES
    ========================================= */
 
-// Northeast Asia + Southeast Asia (as before)
-const NEA_SEA = [
-  'China','Hong Kong SAR','Macao SAR','Taiwan','Japan','South Korea','North Korea','Mongolia',
-  'Brunei','Cambodia','Indonesia','Laos','Malaysia','Myanmar','Philippines','Singapore','Thailand','Timor-Leste','Vietnam'
-];
-
-// South Asia
-const SOUTH_ASIA = [
-  'India','Pakistan','Bangladesh','Sri Lanka','Nepal','Bhutan','Maldives','Afghanistan'
-];
-
-// Central Asia
-const CENTRAL_ASIA = [
-  'Kazakhstan','Uzbekistan','Kyrgyzstan','Tajikistan','Turkmenistan'
-];
-
-// West Asia / Middle East (Asia-side)
+// Region lists
+const NEA = ['China','Hong Kong SAR','Macao SAR','Taiwan','Japan','South Korea','North Korea','Mongolia'];
+const SEA = ['Brunei','Cambodia','Indonesia','Laos','Malaysia','Myanmar','Philippines','Singapore','Thailand','Timor-Leste','Vietnam'];
+const SOUTH_ASIA = ['India','Pakistan','Bangladesh','Sri Lanka','Nepal','Bhutan','Maldives','Afghanistan'];
+const CENTRAL_ASIA = ['Kazakhstan','Uzbekistan','Kyrgyzstan','Tajikistan','Turkmenistan'];
 const WEST_ASIA = [
   'United Arab Emirates','Saudi Arabia','Qatar','Oman','Bahrain','Kuwait',
   'Jordan','Lebanon','Israel','Palestine','Iran','Iraq','Turkey','Syria','Yemen',
   'Georgia','Armenia','Azerbaijan'
 ];
 
-// Combine to master list (order kept)
-const COUNTRY_OPTIONS = [...NEA_SEA, ...SOUTH_ASIA, ...CENTRAL_ASIA, ...WEST_ASIA];
+// Grouped for <optgroup>
+const COUNTRY_GROUPS = [
+  { label: 'Northeast Asia', items: NEA },
+  { label: 'Southeast Asia', items: SEA },
+  { label: 'South Asia', items: SOUTH_ASIA },
+  { label: 'Central Asia', items: CENTRAL_ASIA },
+  { label: 'West Asia / Middle East', items: WEST_ASIA },
+];
 
-// Country detection patterns (common aliases, acronyms, spellings)
+// Regex normalisation (maps aliases in feed text to our labels)
 const COUNTRY_PATTERNS = [
-  // NEA
   { re: /hong\s*kong/i,               name: 'Hong Kong SAR' },
   { re: /macau|macao/i,               name: 'Macao SAR' },
-  { re: /taiwan/i,                    name: 'Taiwan' },
   { re: /\bchina\b|mainland/i,        name: 'China' },
+  { re: /taiwan/i,                    name: 'Taiwan' },
   { re: /japan/i,                     name: 'Japan' },
   { re: /south\s*korea|republic.*korea|\bkorea\b(?!.*north)/i, name: 'South Korea' },
   { re: /north\s*korea|dprk/i,        name: 'North Korea' },
   { re: /mongolia/i,                  name: 'Mongolia' },
 
-  // SEA
   { re: /brunei/i,                    name: 'Brunei' },
   { re: /cambodia|kampuchea/i,        name: 'Cambodia' },
   { re: /indonesia/i,                 name: 'Indonesia' },
@@ -53,7 +45,6 @@ const COUNTRY_PATTERNS = [
   { re: /timor[-\s]?leste|east\s*timor/i, name: 'Timor-Leste' },
   { re: /viet\s*nam|vietnam/i,        name: 'Vietnam' },
 
-  // South Asia
   { re: /\bindia\b/i,                 name: 'India' },
   { re: /pakistan/i,                  name: 'Pakistan' },
   { re: /bangladesh/i,                name: 'Bangladesh' },
@@ -63,14 +54,12 @@ const COUNTRY_PATTERNS = [
   { re: /maldives/i,                  name: 'Maldives' },
   { re: /afghanistan/i,               name: 'Afghanistan' },
 
-  // Central Asia
   { re: /kazakhstan/i,                name: 'Kazakhstan' },
   { re: /uzbekistan/i,                name: 'Uzbekistan' },
   { re: /kyrgyzstan|kirghiz/i,        name: 'Kyrgyzstan' },
   { re: /tajikistan/i,                name: 'Tajikistan' },
   { re: /turkmenistan/i,              name: 'Turkmenistan' },
 
-  // West Asia / Middle East
   { re: /\buae\b|united\s*arab\s*emirates/i,  name: 'United Arab Emirates' },
   { re: /\bksa\b|saudi\s*arabia/i,            name: 'Saudi Arabia' },
   { re: /qatar/i,                              name: 'Qatar' },
@@ -91,30 +80,38 @@ const COUNTRY_PATTERNS = [
   { re: /azerbaijan/i,                         name: 'Azerbaijan' },
 ];
 
-// Expanded roles / categories
-const CATEGORY_OPTIONS = [
-  // Teaching & Academic
-  'Early Years Teaching','Primary Teaching','Secondary Teaching','IB (PYP/MYP/DP)','IGCSE','EAL / ESL',
-  'K-12 Leadership','University Faculty','University Professional','Research',
-
-  // International & Recruitment
-  'Senior Management','International Office','Recruitment & Admissions','Student Recruitment','Agent Relations',
-  'TNE / Partnerships','Sales / Partnerships','Business Development','Alumni & Advancement','Global Mobility / Study Abroad',
-
-  // Student Support & Services
-  'Student Services & Welfare','Counselling / Pastoral','Career Services / Employability','Scholarships / Financial Aid',
-
-  // Exams & Learning Support
-  'Exams & Assessment','Test Centre / IELTS','Library / Learning Resources',
-
-  // Operations & Enablers
-  'Program / Project Management','Admin & Operations','Finance','HR','IT / EdTech','Quality Assurance / Compliance',
-  'Data & CRM / Analytics','Marketing & Communications','Digital Marketing','Events'
+// Category groups (broad and practical)
+const CATEGORY_GROUPS = [
+  { label: 'Teaching & Academic', items: [
+    'Early Years Teaching','Primary Teaching','Secondary Teaching','IB (PYP/MYP/DP)','IGCSE','EAL / ESL',
+    'K-12 Leadership','University Faculty','University Professional','Research'
+  ]},
+  { label: 'International & Recruitment', items: [
+    'Senior Management','International Office','Recruitment & Admissions','Student Recruitment',
+    'Agent Relations','TNE / Partnerships','Sales / Partnerships','Business Development',
+    'Alumni & Advancement','Global Mobility / Study Abroad'
+  ]},
+  { label: 'Student Support & Services', items: [
+    'Student Services & Welfare','Counselling / Pastoral','Career Services / Employability',
+    'Scholarships / Financial Aid'
+  ]},
+  { label: 'Exams & Learning Support', items: [
+    'Exams & Assessment','Test Centre / IELTS','Library / Learning Resources'
+  ]},
+  { label: 'Operations & Enablers', items: [
+    'Program / Project Management','Admin & Operations','Finance','HR','IT / EdTech',
+    'Quality Assurance / Compliance','Data & CRM / Analytics','Marketing & Communications',
+    'Digital Marketing','Events'
+  ]},
 ];
 
-/* ===============================
-   Utilities
-   =============================== */
+// Flatteners
+const ALL_CURATED_COUNTRIES = COUNTRY_GROUPS.flatMap(g => g.items);
+const ALL_CURATED_CATEGORIES = CATEGORY_GROUPS.flatMap(g => g.items);
+
+/* =========================================
+   GENERIC HELPERS
+   ========================================= */
 function mergeDedup(existing, incoming) {
   const toKey = (j) => (j?.original_url || j?.apply_url || j?.id || '').toString().trim();
   const map = new Map(existing.map(j => [toKey(j), j]));
@@ -146,94 +143,48 @@ function normalizeCountry(raw) {
   for (const m of COUNTRY_PATTERNS) if (m.re.test(s)) return m.name;
   return s.trim();
 }
-
-// Title-based category inference (broad but useful)
 function inferCategoryFromTitle(title='') {
   const t = title.toLowerCase();
-
-  // Senior/Leadership
-  if (/(principal|head of school|headteacher|deputy head|vice principal|dean|provost|pro-?vice|director\b(?!.*assistant)|chief)/.test(t))
-    return 'Senior Management';
-  if (/(head of|director of|vp|vice president).*admissions|recruitment|international|marketing|partnerships/.test(t))
-    return 'Senior Management';
-  if (/(head of year|head of department|ho[dp]|curriculum lead)/.test(t))
-    return 'K-12 Leadership';
-
-  // Teaching
+  if (/(principal|head of school|headteacher|deputy head|vice principal|dean|provost|director\b(?!.*assistant)|chief)/.test(t)) return 'Senior Management';
+  if (/(head of|director of|vp|vice president).*admissions|recruitment|international|marketing|partnerships/.test(t)) return 'Senior Management';
+  if (/(head of year|head of department|curriculum lead)/.test(t)) return 'K-12 Leadership';
   if (/(early years|eyfs)/.test(t)) return 'Early Years Teaching';
   if (/(primary|elementary) (teacher|teaching)/.test(t)) return 'Primary Teaching';
   if (/(secondary|high school) (teacher|teaching)/.test(t)) return 'Secondary Teaching';
   if (/\bib\b|pyp|myp|dp/.test(t)) return 'IB (PYP/MYP/DP)';
   if (/\bigcse\b/.test(t)) return 'IGCSE';
   if (/(esl|eal|ell|english language (teacher|instructor))/.test(t)) return 'EAL / ESL';
-  if (/(professor|lecturer|assistant professor|associate professor|post-?doc|postdoctoral)/.test(t))
-    return 'University Faculty';
-
-  // International & recruitment
-  if (/(recruitment|admissions|enrol?ment|student recruitment|outreach officer)/.test(t))
-    return 'Recruitment & Admissions';
-  if (/(international (officer|manager|relations|partnerships|engagement)|global engagement|regional (manager|director)|country (manager|director))/.test(t))
-    return 'International Office';
-  if (/(agent relations|agent manager|channel manager)/.test(t))
-    return 'Agent Relations';
-  if (/(tne|transnational education|articulation|dual degree|joint program|mo[u]|partnerships)/.test(t))
-    return 'TNE / Partnerships';
-  if (/(sales|partnerships|business development|bdm|growth)/.test(t))
-    return 'Sales / Partnerships';
-  if (/(alumni|advancement|development (office|officer)|fundraising)/.test(t))
-    return 'Alumni & Advancement';
-  if (/(study abroad|global mobility|exchange (program|coordinator)|erasmus)/.test(t))
-    return 'Global Mobility / Study Abroad';
-
-  // Student support & services
-  if (/(student services|student affairs|welfare|pastoral|wellbeing)/.test(t))
-    return 'Student Services & Welfare';
-  if (/(counsellor|counselor|counselling|counseling|psycholog)/.test(t))
-    return 'Counselling / Pastoral';
-  if (/(career services|careers advisor|employability|internship)/.test(t))
-    return 'Career Services / Employability';
-  if (/(scholarship|financial aid|bursary)/.test(t))
-    return 'Scholarships / Financial Aid';
-
-  // Exams & learning support
-  if (/(ielts|exams? officer|assessment|invigilator|test( |-)centre|testing)/.test(t))
-    return 'Exams & Assessment';
-  if (/(library|librarian|learning resources|information services)/.test(t))
-    return 'Library / Learning Resources';
-
-  // Operations & enablers
-  if (/(project|programme|program) (manager|officer|coordinator)/.test(t))
-    return 'Program / Project Management';
-  if (/(administrator|admin|operations|office manager)/.test(t))
-    return 'Admin & Operations';
-  if (/(finance|accountant|bursar)/.test(t))
-    return 'Finance';
-  if (/(human resources|^hr\b|\shr\b|people partner)/.test(t))
-    return 'HR';
-  if (/(it\b|edtech|systems?|developer|engineer|data engineer)/.test(t))
-    return 'IT / EdTech';
-  if (/(quality assurance|qa|accreditation|compliance|ukvi|visa)/.test(t))
-    return 'Quality Assurance / Compliance';
-  if (/(crm|salesforce|hubspot|data|analytics|insight|power bi|tableau|sql)/.test(t))
-    return 'Data & CRM / Analytics';
-  if (/(marketing|communications|marcom|brand)/.test(t))
-    return 'Marketing & Communications';
-  if (/(digital marketing|performance marketing|seo|sem|ppc|social media|content|copywriter|graphic|designer|web)/.test(t))
-    return 'Digital Marketing';
-  if (/(events|fair|exhibition|roadshow)/.test(t))
-    return 'Events';
-
-  // Academic support / research (fallbacks)
-  if (/(research (assistant|associate)|research fellow|lab manager)/.test(t))
-    return 'Research';
-
-  // Fallback
+  if (/(professor|lecturer|assistant professor|associate professor|post-?doc|postdoctoral)/.test(t)) return 'University Faculty';
+  if (/(recruitment|admissions|enrol?ment|student recruitment)/.test(t)) return 'Recruitment & Admissions';
+  if (/(international (officer|manager|relations|partnerships|engagement)|regional (manager|director)|country (manager|director))/.test(t)) return 'International Office';
+  if (/(agent relations|agent manager|channel manager)/.test(t)) return 'Agent Relations';
+  if (/(tne|transnational education|articulation|dual degree|joint program|mou|partnerships)/.test(t)) return 'TNE / Partnerships';
+  if (/(sales|partnerships|business development|bdm)/.test(t)) return 'Sales / Partnerships';
+  if (/(alumni|advancement|fundraising)/.test(t)) return 'Alumni & Advancement';
+  if (/(study abroad|global mobility|exchange (program|coordinator))/.test(t)) return 'Global Mobility / Study Abroad';
+  if (/(student services|student affairs|welfare|pastoral|wellbeing)/.test(t)) return 'Student Services & Welfare';
+  if (/(counsellor|counselor|counselling|counseling|psycholog)/.test(t)) return 'Counselling / Pastoral';
+  if (/(career services|careers advisor|employability)/.test(t)) return 'Career Services / Employability';
+  if (/(scholarship|financial aid|bursary)/.test(t)) return 'Scholarships / Financial Aid';
+  if (/(ielts|exams? officer|assessment|invigilator|test( |-)centre|testing)/.test(t)) return 'Exams & Assessment';
+  if (/(library|librarian|learning resources)/.test(t)) return 'Library / Learning Resources';
+  if (/(project|programme|program) (manager|officer|coordinator)/.test(t)) return 'Program / Project Management';
+  if (/(administrator|admin|operations|office manager)/.test(t)) return 'Admin & Operations';
+  if (/(finance|accountant|bursar)/.test(t)) return 'Finance';
+  if (/(human resources|^hr\b|\shr\b|people partner)/.test(t)) return 'HR';
+  if (/(it\b|edtech|systems?|developer|engineer)/.test(t)) return 'IT / EdTech';
+  if (/(quality assurance|qa|accreditation|compliance|ukvi|visa)/.test(t)) return 'Quality Assurance / Compliance';
+  if (/(crm|salesforce|hubspot|data|analytics|insight|power bi|tableau|sql)/.test(t)) return 'Data & CRM / Analytics';
+  if (/(marketing|communications|marcom|brand)/.test(t)) return 'Marketing & Communications';
+  if (/(digital marketing|seo|sem|ppc|social media|content|copywriter|graphic|designer|web)/.test(t)) return 'Digital Marketing';
+  if (/(events|fair|exhibition|roadshow)/.test(t)) return 'Events';
+  if (/(research (assistant|associate)|research fellow)/.test(t)) return 'Research';
   return '';
 }
 
-/* ===============================
-   App
-   =============================== */
+/* =========================================
+   APP
+   ========================================= */
 class JobApp {
   constructor() {
     this.jobs = [];
@@ -241,7 +192,7 @@ class JobApp {
     this.lastUpdate = null;
     this.nextUpdate  = null;
 
-    // UI
+    // UI hooks
     this.$container   = document.getElementById('jobsContainer');
     this.$empty       = document.getElementById('emptyState');
     this.$statCount   = document.getElementById('statCount');
@@ -263,7 +214,7 @@ class JobApp {
     this.$applyBtn   = document.getElementById('applyJobBtn');
 
     this.bindEvents();
-    this.hideModal();      // safety
+    this.hideModal(); // safety
     this.init();
   }
 
@@ -273,7 +224,6 @@ class JobApp {
     this.$country?.addEventListener('change', apply);
     this.$category?.addEventListener('change', apply);
     this.$sort?.addEventListener('change', apply);
-
     this.$closeModal?.addEventListener('click', () => this.hideModal());
     this.$modal?.addEventListener('click', (e) => { if (e.target === this.$modal) this.hideModal(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') this.hideModal(); });
@@ -283,12 +233,12 @@ class JobApp {
     await this.loadLocal();
     await this.loadLive();
     this.applyFilters();
-    this.populateFilters();
+    this.populateFilters(); // uses curated lists, not just data
     this.renderJobs();
     this.updateStats();
   }
 
-  /* -------- data loaders -------- */
+  // ------- data loaders -------
   async loadLocal() {
     try {
       const j = p => fetch(p,{cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error(`${p} ${r.status}`); return r.json(); });
@@ -306,7 +256,7 @@ class JobApp {
           ...j,
           posting_date: j.posting_date instanceof Date ? j.posting_date : toDate(j.posting_date),
           application_deadline: j.application_deadline instanceof Date ? j.application_deadline : toDate(j.application_deadline),
-          original_url: j.original_url || j.apply_url, // ensure title link
+          original_url: j.original_url || j.apply_url,
           country: normalizeCountry(j.country || j.location || ''),
           id: j.id || (j.original_url || j.apply_url),
           description: sanitizeDesc(j.description),
@@ -343,31 +293,81 @@ class JobApp {
     } catch (e) { console.warn('Live load warn',e.message); }
   }
 
-  /* -------- filters / render -------- */
+  // ------- filters UI -------
   populateFilters() {
-    const uniq = (a)=>[...new Set(a.filter(Boolean))];
-
-    // Countries: curated Asia list first, then any extras found in data
-    const fromData = uniq(this.jobs.map(j => j.country));
-    const extras   = fromData.filter(c => !COUNTRY_OPTIONS.includes(c));
-    const countryList = [...COUNTRY_OPTIONS, ...extras];
+    // Countries: curated groups FIRST; then add any extras from data into an "Other" optgroup
+    const fromData = [...new Set(this.jobs.map(j => j.country).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    const curatedSet = new Set(ALL_CURATED_COUNTRIES);
+    const extras = fromData.filter(c => !curatedSet.has(c));
 
     if (this.$country) {
-      this.$country.innerHTML = '<option value="">All countries</option>' +
-        countryList.map(c=>`<option value="${c}">${c}</option>`).join('');
+      // build with optgroups
+      this.$country.innerHTML = ''; // clear
+      const optAll = document.createElement('option');
+      optAll.value = '';
+      optAll.textContent = 'All countries';
+      this.$country.appendChild(optAll);
+
+      COUNTRY_GROUPS.forEach(group => {
+        const og = document.createElement('optgroup');
+        og.label = group.label;
+        group.items.forEach(c => {
+          const o = document.createElement('option');
+          o.value = c; o.textContent = c;
+          og.appendChild(o);
+        });
+        this.$country.appendChild(og);
+      });
+
+      if (extras.length) {
+        const og = document.createElement('optgroup');
+        og.label = 'Other (from data)';
+        extras.forEach(c => {
+          const o = document.createElement('option');
+          o.value = c; o.textContent = c;
+          og.appendChild(o);
+        });
+        this.$country.appendChild(og);
+      }
     }
 
-    // Categories: curated first, then extras from data
-    const catsData = uniq(this.jobs.map(j => j.category));
-    const catExtras = catsData.filter(c => !!c && !CATEGORY_OPTIONS.includes(c));
-    const catList = [...CATEGORY_OPTIONS, ...catExtras];
+    // Categories: curated groups FIRST; extras in "Other (from data)"
+    const catsFromData = [...new Set(this.jobs.map(j => j.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    const curatedCats = new Set(ALL_CURATED_CATEGORIES);
+    const catExtras = catsFromData.filter(c => !curatedCats.has(c));
 
     if (this.$category) {
-      this.$category.innerHTML = '<option value="">All categories</option>' +
-        catList.map(c=>`<option value="${c}">${c}</option>`).join('');
+      this.$category.innerHTML = '';
+      const optAll = document.createElement('option');
+      optAll.value = '';
+      optAll.textContent = 'All categories';
+      this.$category.appendChild(optAll);
+
+      CATEGORY_GROUPS.forEach(group => {
+        const og = document.createElement('optgroup');
+        og.label = group.label;
+        group.items.forEach(c => {
+          const o = document.createElement('option');
+          o.value = c; o.textContent = c;
+          og.appendChild(o);
+        });
+        this.$category.appendChild(og);
+      });
+
+      if (catExtras.length) {
+        const og = document.createElement('optgroup');
+        og.label = 'Other (from data)';
+        catExtras.forEach(c => {
+          const o = document.createElement('option');
+          o.value = c; o.textContent = c;
+          og.appendChild(o);
+        });
+        this.$category.appendChild(og);
+      }
     }
   }
 
+  // ------- filtering & render -------
   applyFilters() {
     const q=(this.$search?.value||'').trim().toLowerCase(),
           c=this.$country?.value||'',
@@ -385,7 +385,7 @@ class JobApp {
     const byDate=(a,b)=>(a.posting_date?.getTime?.()||0)-(b.posting_date?.getTime?.()||0);
     if (sort==='date_asc') this.filteredJobs.sort(byDate);
     else if (sort==='title_asc') this.filteredJobs.sort((a,b)=>(a.title||'').localeCompare(b.title||'')); 
-    else this.filteredJobs.sort((a,b)=>byDate(b,a)); // newest
+    else this.filteredJobs.sort((a,b)=>byDate(b,a));
   }
 
   renderJobs() {
@@ -422,7 +422,7 @@ class JobApp {
         </div>
       `;
       card.querySelector('[data-open-modal]')?.addEventListener('click', ()=> this.openJobModal(job));
-      c.appendChild(card);
+      this.$container.appendChild(card);
     });
     this.updateStats();
   }
@@ -437,28 +437,30 @@ class JobApp {
     const meta     = [school, loc].filter(Boolean).join(' · ');
     const desc     = job.description || 'No description provided.';
 
-    if (this.$modalTitle) this.$modalTitle.textContent = title;
-    if (this.$modalMeta)  { this.$modalMeta.textContent = meta; this.$modalMeta.style.display = meta ? '' : 'none'; }
-    if (this.$modalDesc)  this.$modalDesc.textContent  = desc;
-    if (this.$viewBtn)    this.$viewBtn.href = viewUrl;
-    if (this.$applyBtn)   this.$applyBtn.href = applyUrl;
+    this.$modalTitle.textContent = title;
+    this.$modalMeta.textContent  = meta;
+    this.$modalMeta.style.display = meta ? '' : 'none';
+    this.$modalDesc.textContent  = desc;
+    this.$viewBtn.href = viewUrl;
+    this.$applyBtn.href = applyUrl;
 
-    this.$modal?.classList.remove('hidden');
-    this.$modal?.setAttribute('aria-hidden','false');
+    this.$modal.classList.remove('hidden');
+    this.$modal.setAttribute('aria-hidden','false');
   }
   hideModal(){
-    this.$modal?.classList.add('hidden');
-    this.$modal?.setAttribute('aria-hidden','true');
+    this.$modal.classList.add('hidden');
+    this.$modal.setAttribute('aria-hidden','true');
   }
 
   updateStats(){
-    if (this.$statCount)   this.$statCount.textContent   = `${this.filteredJobs.length} job${this.filteredJobs.length===1?'':'s'}`;
-    if (this.$statUpdated) this.$statUpdated.textContent = `Updated: ${this.lastUpdate ? this.lastUpdate.toLocaleString() : '—'}`;
-    if (this.$statNext)    this.$statNext.textContent    = `Next check: ${this.nextUpdate ? this.nextUpdate.toLocaleString() : '—'}`;
+    this.$statCount.textContent   = `${this.filteredJobs.length} job${this.filteredJobs.length===1?'':'s'}`;
+    this.$statUpdated.textContent = `Updated: ${this.lastUpdate ? this.lastUpdate.toLocaleString() : '—'}`;
+    this.$statNext.textContent    = `Next check: ${this.nextUpdate ? this.nextUpdate.toLocaleString() : '—'}`;
   }
 }
 
 document.addEventListener('DOMContentLoaded',()=>new JobApp());
+
 
 
 
