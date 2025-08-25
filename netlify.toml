@@ -2,7 +2,16 @@
   publish = "/"
   command = ""
 
+[functions]
+  node_bundler = "esbuild"
+
+# Schedule: run fetch_jobs every 6 hours (UTC)
+[[scheduled.functions]]
+  name = "fetch_jobs"   # must match netlify/functions/fetch_jobs.js
+  cron = "0 */6 * * *"
+
 [[headers]]
   for = "/*"
   [headers.values]
   Cache-Control = "public, max-age=300"
+
