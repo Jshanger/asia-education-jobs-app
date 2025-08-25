@@ -1,74 +1,74 @@
 // netlify/functions/fetch_jobs.js
-export const handler = async () => {
+export const handler = async (event) => {
   try {
-    // Public RSS sources (edit/expand these as needed and only use feeds that allow it)
+    // Toggle with .../fetch_jobs?debug=1 to see counts per source
+    const debug = event?.queryStringParameters?.debug === '1';
+
+    // A broader set of feeds/queries that often return items.
+    // Only include feeds that publicly allow RSS consumption.
     const sources = [
-      {
-        name: 'Jobs.ac.uk (East Asia recruitment)',
-        url: 'https://www.jobs.ac.uk/search/feed?keywords=international%20recruitment%20officer%20asia'
-      },
-      {
-        name: 'WISHlistjobs (Asia search)',
-        url: 'https://www.wishlistjobs.com/jobs?search=asia&format=rss'
-      }
+      // jobs.ac.uk – several keyword variants
+      { name: 'jobs.ac.uk: international recruitment asia', url: 'https://www.jobs.ac.uk/search/feed?keywords=international%20recruitment%20asia' },
+      { name: 'jobs.ac.uk: international student recruitment', url: 'https://www.jobs.ac.uk/search/feed?keywords=international%20student%20recruitment' },
+      { name: 'jobs.ac.uk: china education', url: 'https://www.jobs.ac.uk/search/feed?keywords=china%20education' },
+
+      // WISHlistjobs – broad search + RSS
+      { name: 'WISHlistjobs: asia broad', url: 'https://www.wishlistjobs.com/jobs?search=asia&format=rss' },
+      { name: 'WISHlistjobs: international school', url: 'https://www.wishlistjobs.com/jobs?search=international%20school&format=rss' },
+
+      // THE UniJobs – keyword RSS (supports RSS/Atom)
+      { name: 'THE UniJobs: China', url: 'https://www.timeshighereducation.com/unijobs/jobsrss/?keywords=china' },
+      { name: 'THE UniJobs: Asia', url: 'https://www.timeshighereducation.com/unijobs/jobsrss/?keywords=asia' },
+
+      // Guardian Jobs – “education asia” (often UK-focused but can surface intl roles)
+      { name: 'Guardian Jobs: education asia', url: 'https://jobs.theguardian.com/jobsrss/?Keywords=education%20asia' }
     ];
+
+    // Some hosts require a UA; harmless elsewhere.
+    const commonFetchOpts = {
+      headers: { 'User-Agent': 'Mozilla/5.0 (+https://netlify.com/)' }
+    };
 
     const clean = (s = '') => s.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
     const pick = (raw, tag) =>
       clean((raw.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 'i')) || [, ''])[1]);
 
-    const parseRssItems = (xml) => {
+    const parseRssOrAtom = (xml) => {
+      const out = [];
+
+      // RSS <item>
       const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)];
-      return items.map((m) => {
+      for (const m of items) {
         const raw = m[1];
         const title = pick(raw, 'title');
-        const link = pick(raw, 'link');
-        const desc = pick(raw, 'description');
-        const pub = pick(raw, 'pubDate');
-        return {
-          id: link || title,
-          title,
-          school: '',
-          location: '',
-          country: '',
-          city: '',
-          source: 'RSS',
-          posting_date: pub ? new Date(pub).toISOString() : new Date().toISOString(),
-          application_deadline: null,
-          category: 'Teaching',
-          experience_level: '',
-          description: desc,
-          original_url: link,
-          apply_url: link
-        };
-      });
-    };
-
-    let jobs = [];
-    for (const s of sources) {
-      try {
-        const res = await fetch(s.url);
-        const xml = await res.text();
-        jobs.push(...parseRssItems(xml));
-      } catch (err) {
-        console.error('Source failed:', s.name, err);
+        const link = pick(raw, 'link') || pick(raw, 'guid');
+        const desc = pick(raw, 'description') || pick(raw, 'content:encoded');
+        const pub = pick(raw, 'pubDate') || pick(raw, 'date');
+        if (title && link) {
+          out.push({
+            id: link || title,
+            title,
+            school: '',
+            location: '',
+            country: '',
+            city: '',
+            source: 'RSS',
+            posting_date: pub ? new Date(pub).toISOString() : new Date().toISOString(),
+            application_deadline: null,
+            category: '',
+            experience_level: '',
+            description: desc,
+            original_url: link,
+            apply_url: link
+          });
+        }
       }
-    }
 
-    // De-dupe by URL
-    const map = new Map();
-    for (const j of jobs) {
-      const key = j.original_url || j.apply_url || j.id;
-      if (!map.has(key)) map.set(key, j);
-    }
+      // Atom <entry>
+      const entries = [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/gi)];
+      for (const m of entries) {
+        const raw = m[1];
+        const title = pick(raw, 'title');
+        // Atom <link href="...">
 
-    return {
-      statusCode: 200,
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify([...map.values()].slice(0, 200))
-    };
-  } catch (e) {
-    return { statusCode: 500, body: e.message };
-  }
-};
 
