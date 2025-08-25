@@ -1,3 +1,16 @@
+// Helper to merge and de-duplicate
+function mergeDedup(existing, incoming) {
+  const toKey = (j) => (j.original_url || j.apply_url || j.id || '').trim();
+  const map = new Map(existing.map(j => [toKey(j), j]));
+  (incoming || []).forEach(j => {
+    const k = toKey(j);
+    if (!map.has(k)) map.set(k, j);
+  });
+  return [...map.values()].sort((a, b) =>
+    (new Date(b.posting_date).getTime() || 0) - (new Date(a.posting_date).getTime() || 0)
+  );
+}
+
 class JobApp {
   constructor() {
     this.jobs = [];
@@ -48,6 +61,7 @@ class JobApp {
 
   async init() {
     await this.loadRealJobData();
+    await this.loadFromFunction();   // NEW: fetch from Netlify function
     this.applyFilters();
     this.populateFilters();
     this.renderJobs();
@@ -90,7 +104,6 @@ class JobApp {
           id: j.id || (j.original_url || j.apply_url)
         }));
 
-      // default sort newest first
       this.jobs.sort((a,b) => (b.posting_date?.getTime?.()||0) - (a.posting_date?.getTime?.()||0));
 
       this.lastUpdate = new Date();
@@ -98,6 +111,24 @@ class JobApp {
     } catch (err) {
       console.error('Error loading job data:', err);
       this.jobs = [];
+    }
+  }
+
+  // NEW: fetch live jobs from the Netlify function
+  async loadFromFunction() {
+    try {
+      const res = await fetch('/.netlify/functions/fetch_jobs', { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Function error ${res.status}`);
+      const live = await res.json();
+
+      live.forEach(j => {
+        j.posting_date = j.posting_date ? new Date(j.posting_date) : null;
+        j.application_deadline = j.application_deadline ? new Date(j.application_deadline) : null;
+      });
+
+      this.jobs = mergeDedup(this.jobs, live);
+    } catch (e) {
+      console.warn('Could not fetch live jobs:', e.message);
     }
   }
 
@@ -126,7 +157,7 @@ class JobApp {
 
     const byDate = (a,b) => (a.posting_date?.getTime?.()||0) - (b.posting_date?.getTime?.()||0);
     if (sort === 'date_asc') this.filteredJobs.sort(byDate);
-    else if (sort === 'title_asc') this.filteredJobs.sort((a,b) => (a.title||'').localeCompare(b.title||''));
+    else if (sort === 'title_asc') this.filteredJobs.sort((a,b) => (a.title||'').localeCompare(b.title||'')); 
     else this.filteredJobs.sort((a,b) => byDate(b,a)); // newest
   }
 
@@ -209,3 +240,4 @@ class JobApp {
 }
 
 document.addEventListener('DOMContentLoaded', () => new JobApp());
+
