@@ -1,9 +1,14 @@
-// CommonJS version (more reliable on Netlify without extra config)
-// Looser defaults so we don't over-filter at the function layer.
-// Add ?debug=1 to see counts.
+// CommonJS Netlify Function
+// Aggregates Asia-focused education jobs via RSS/Atom (+ optional HTML fallback for PIE).
+// Debug: open /.netlify/functions/fetch_jobs?debug=1
+//
+// Netlify → Site settings → Environment variables (recommended):
+//   STRICT_ASIA_ONLY = 0          # let client-side country detection do the scoping
+//   ALLOW_HTML_SCRAPE = 1         # optional; basic best-effort fallback for PIE Jobs
+//   EXTRA_RSS = <one URL per line># optional; add your own RSS feeds (e.g. RSS.app for LinkedIn searches)
 
 const ALLOW_HTML_SCRAPE = process.env.ALLOW_HTML_SCRAPE === "1";
-// default STRICT to OFF so we don't discard items prematurely
+// DEFAULT STRICT OFF to avoid throwing away items prematurely
 const STRICT_ASIA_ONLY  = (process.env.STRICT_ASIA_ONLY ?? "0") === "1";
 
 const EXTRA_RSS = (process.env.EXTRA_RSS || "")
@@ -11,106 +16,101 @@ const EXTRA_RSS = (process.env.EXTRA_RSS || "")
   .map(s => s.trim())
   .filter(Boolean);
 
-// ---- NEA/SEA keywords for optional server-side scoping ----
+// --- NEA/SEA keywords (used only if STRICT_ASIA_ONLY=1)
 const ASIA_WORDS = [
+  // NEA
   "China","Hong Kong","Macao","Macau","Taiwan","Japan","South Korea","Korea","North Korea","Mongolia",
+  // SEA
   "Brunei","Cambodia","Indonesia","Laos","Malaysia","Myanmar","Burma","Philippines","Singapore",
   "Thailand","Timor-Leste","East Timor","Vietnam","Viet Nam",
+  // big cities (often used without country)
   "Beijing","Shanghai","Shenzhen","Guangzhou","Chengdu","Wuhan","Nanjing","Hangzhou","Suzhou","Tianjin",
   "Xi'an","Chongqing","Hanoi","Ho Chi Minh","Saigon","Da Nang","Bangkok","Chiang Mai","Phuket",
   "Kuala Lumpur","Penang","Selangor","Manila","Cebu","Davao","Jakarta","Surabaya","Bandung","Yogyakarta",
   "Seoul","Busan","Tokyo","Osaka","Kyoto","Nagoya","Fukuoka","Singapore"
 ];
-const ASIA_RE = new RegExp(`\\b(${ASIA_WORDS.map(w => w.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")).join("|")})\\b`, "i");
+const ASIA_RE = new RegExp(`\\b(${ASIA_WORDS.map(w => w.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\$&")).join("|")})\\b`, "i");
 
-// ---- Helpers to build feed URLs ----
-const ja  = q => `https://www.jobs.ac.uk/search/feed?keywords=${encodeURIComponent(q)}`;
-const the = q => `https://www.timeshighereducation.com/unijobs/jobsrss/?keywords=${encodeURIComponent(q)}`;
-const wish= q => `https://www.wishlistjobs.com/jobs?search=${encodeURIComponent(q)}&format=rss`;
+// ---- Feed URL builders
+const ja   = q => `https://www.jobs.ac.uk/search/feed?keywords=${encodeURIComponent(q)}`;
+const the  = q => `https://www.timeshighereducation.com/unijobs/jobsrss/?keywords=${encodeURIComponent(q)}`;
+const wish = q => `https://www.wishlistjobs.com/jobs?search=${encodeURIComponent(q)}&format=rss`;
 const guardian = q => `https://jobs.theguardian.com/jobsrss/?Keywords=${encodeURIComponent(q)}`;
 
-// ---- Sources (focus on student recruitment, marketing, partnerships, deans, PM) ----
+// ---- Sources (student recruitment, marketing/sales, partnerships, senior leadership, PM) ----
 const RSS_SOURCES = [
-  // Jobs.ac.uk (functional + country)
-  { name: "jobs.ac.uk: student recruitment asia", url: ja("student recruitment asia") },
+  // Jobs.ac.uk – functional
+  { name: "jobs.ac.uk: student recruitment asia",      url: ja("student recruitment asia") },
   { name: "jobs.ac.uk: international student recruitment asia", url: ja("international student recruitment asia") },
-  { name: "jobs.ac.uk: admissions asia", url: ja("admissions asia") },
-  { name: "jobs.ac.uk: marketing asia education", url: ja("marketing asia education") },
-  { name: "jobs.ac.uk: international office asia", url: ja("international office asia") },
-  { name: "jobs.ac.uk: partnerships asia", url: ja("partnerships asia") },
-  { name: "jobs.ac.uk: regional manager asia", url: ja("regional manager asia") },
-  { name: "jobs.ac.uk: country manager asia", url: ja("country manager asia") },
-  { name: "jobs.ac.uk: project manager education asia", url: ja("project manager education asia") },
-  { name: "jobs.ac.uk: dean asia", url: ja("dean asia") },
-  { name: "jobs.ac.uk: director asia education", url: ja("director asia education") },
-  { name: "jobs.ac.uk: china", url: ja("china education") },
-  { name: "jobs.ac.uk: hong kong", url: ja("hong kong education") },
-  { name: "jobs.ac.uk: singapore", url: ja("singapore education") },
-  { name: "jobs.ac.uk: malaysia", url: ja("malaysia education") },
-  { name: "jobs.ac.uk: thailand", url: ja("thailand education") },
-  { name: "jobs.ac.uk: vietnam", url: ja("vietnam education") },
-  { name: "jobs.ac.uk: indonesia", url: ja("indonesia education") },
+  { name: "jobs.ac.uk: admissions asia",               url: ja("admissions asia") },
+  { name: "jobs.ac.uk: marketing asia education",      url: ja("marketing asia education") },
+  { name: "jobs.ac.uk: international office asia",     url: ja("international office asia") },
+  { name: "jobs.ac.uk: partnerships asia",             url: ja("partnerships asia") },
+  { name: "jobs.ac.uk: regional manager asia",         url: ja("regional manager asia") },
+  { name: "jobs.ac.uk: country manager asia",          url: ja("country manager asia") },
+  { name: "jobs.ac.uk: project manager education asia",url: ja("project manager education asia") },
+  { name: "jobs.ac.uk: dean asia",                     url: ja("dean asia") },
+  { name: "jobs.ac.uk: director asia education",       url: ja("director asia education") },
+  // Jobs.ac.uk – by country keyword
+  { name: "jobs.ac.uk: china",       url: ja("china education") },
+  { name: "jobs.ac.uk: hong kong",   url: ja("hong kong education") },
+  { name: "jobs.ac.uk: singapore",   url: ja("singapore education") },
+  { name: "jobs.ac.uk: malaysia",    url: ja("malaysia education") },
+  { name: "jobs.ac.uk: thailand",    url: ja("thailand education") },
+  { name: "jobs.ac.uk: vietnam",     url: ja("vietnam education") },
+  { name: "jobs.ac.uk: indonesia",   url: ja("indonesia education") },
   { name: "jobs.ac.uk: philippines", url: ja("philippines education") },
-  { name: "jobs.ac.uk: japan", url: ja("japan education") },
-  { name: "jobs.ac.uk: korea", url: ja("korea education") },
-  { name: "jobs.ac.uk: taiwan", url: ja("taiwan education") },
+  { name: "jobs.ac.uk: japan",       url: ja("japan education") },
+  { name: "jobs.ac.uk: korea",       url: ja("korea education") },
+  { name: "jobs.ac.uk: taiwan",      url: ja("taiwan education") },
 
-  // Times Higher Education
-  { name: "THE: dean asia", url: the("dean asia") },
-  { name: "THE: director asia education", url: the("director asia education") },
-  { name: "THE: marketing asia", url: the("marketing asia") },
-  { name: "THE: admissions asia", url: the("admissions asia") },
-  { name: "THE: recruitment asia", url: the("recruitment asia") },
-  { name: "THE: partnerships asia", url: the("partnerships asia") },
-  { name: "THE: china", url: the("china") },
-  { name: "THE: hong kong", url: the("hong kong") },
-  { name: "THE: singapore", url: the("singapore") },
-  { name: "THE: malaysia", url: the("malaysia") },
-  { name: "THE: thailand", url: the("thailand") },
-  { name: "THE: vietnam", url: the("vietnam") },
-  { name: "THE: indonesia", url: the("indonesia") },
-  { name: "THE: philippines", url: the("philippines") },
-  { name: "THE: japan", url: the("japan") },
-  { name: "THE: korea", url: the("korea") },
+  // THEunijobs (Times Higher Education)
+  { name: "THE: dean asia",             url: the("dean asia") },
+  { name: "THE: director asia education",url: the("director asia education") },
+  { name: "THE: marketing asia",        url: the("marketing asia") },
+  { name: "THE: admissions asia",       url: the("admissions asia") },
+  { name: "THE: recruitment asia",      url: the("recruitment asia") },
+  { name: "THE: partnerships asia",     url: the("partnerships asia") },
+  { name: "THE: china", url: the("china") }, { name: "THE: hong kong", url: the("hong kong") },
+  { name: "THE: singapore", url: the("singapore") }, { name: "THE: malaysia", url: the("malaysia") },
+  { name: "THE: thailand", url: the("thailand") },   { name: "THE: vietnam", url: the("vietnam") },
+  { name: "THE: indonesia", url: the("indonesia") }, { name: "THE: philippines", url: the("philippines") },
+  { name: "THE: japan", url: the("japan") },         { name: "THE: korea", url: the("korea") },
   { name: "THE: taiwan", url: the("taiwan") },
 
   // WISHlistjobs (international schools)
   { name: "WISH: asia", url: wish("asia") },
-  { name: "WISH: china", url: wish("china") },
-  { name: "WISH: hong kong", url: wish("hong kong") },
-  { name: "WISH: singapore", url: wish("singapore") },
-  { name: "WISH: malaysia", url: wish("malaysia") },
-  { name: "WISH: thailand", url: wish("thailand") },
-  { name: "WISH: vietnam", url: wish("vietnam") },
-  { name: "WISH: indonesia", url: wish("indonesia") },
-  { name: "WISH: philippines", url: wish("philippines") },
-  { name: "WISH: japan", url: wish("japan") },
-  { name: "WISH: korea", url: wish("korea") },
+  { name: "WISH: china", url: wish("china") },           { name: "WISH: hong kong", url: wish("hong kong") },
+  { name: "WISH: singapore", url: wish("singapore") },   { name: "WISH: malaysia", url: wish("malaysia") },
+  { name: "WISH: thailand", url: wish("thailand") },     { name: "WISH: vietnam", url: wish("vietnam") },
+  { name: "WISH: indonesia", url: wish("indonesia") },   { name: "WISH: philippines", url: wish("philippines") },
+  { name: "WISH: japan", url: wish("japan") },           { name: "WISH: korea", url: wish("korea") },
   { name: "WISH: taiwan", url: wish("taiwan") },
 
-  // Guardian Jobs (education + asia keywords)
-  { name: "Guardian: education asia", url: guardian("education asia") },
+  // Guardian Jobs
+  { name: "Guardian: education asia",           url: guardian("education asia") },
   { name: "Guardian: student recruitment asia", url: guardian("student recruitment asia") },
   { name: "Guardian: marketing asia education", url: guardian("marketing asia education") },
 
   // ChinaUniversityJobs (WordPress RSS)
   { name: "ChinaUniversityJobs feed", url: "https://www.chinauniversityjobs.com/feed/" },
 
-  // PIE Jobs (likely HTML; try RSS endpoints first)
+  // The PIE Jobs – try common RSS endpoints first (site has no official RSS)
   { name: "PIE (try /feed)", url: "https://thepiejobs.com/feed/" },
   { name: "PIE (try /jobs/feed)", url: "https://thepiejobs.com/jobs/feed/" }
 ];
 
-// Add any third-party feeds from env (e.g., RSS.app for LinkedIn queries)
+// Extra feeds from env (e.g., RSS.app feeds for LinkedIn searches)
 for (const url of EXTRA_RSS) RSS_SOURCES.push({ name: "EXTRA_RSS", url });
 
 const fetchOpts = { headers: { "User-Agent": "Mozilla/5.0 (+https://netlify.com/)" } };
-const clean = (s="") => s.replace(/<!\[CDATA\[(.*?)\]\]>/g, "$1").trim();
-const pick  = (raw, tag) => clean((raw.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i")) || [, ""])[1]);
+const clean = (s="") => s.replace(/<!\[CDATA\[(.*?)\]\]>/g,"$1").trim();
+const pick  = (raw, tag) => clean((raw.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`,"i")) || [, ""])[1]);
 
 function parseRssOrAtom(xml) {
   const out = [];
-  // RSS
+
+  // RSS items
   for (const m of xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)) {
     const raw = m[1];
     const title = pick(raw, "title");
@@ -128,7 +128,8 @@ function parseRssOrAtom(xml) {
       original_url: link, apply_url: link
     });
   }
-  // Atom
+
+  // Atom entries
   for (const m of xml.matchAll(/<entry>([\s\S]*?)<\/entry>/gi)) {
     const raw = m[1];
     const title = pick(raw, "title");
@@ -150,7 +151,7 @@ function parseRssOrAtom(xml) {
   return out;
 }
 
-// Optional HTML fallback for PIE Jobs
+// Optional basic HTML fallback for PIE Jobs list page
 async function scrapePIE() {
   const list = [];
   try {
@@ -159,9 +160,9 @@ async function scrapePIE() {
     if (!/<html/i.test(html)) return list;
     const matches = [...html.matchAll(/<a[^>]+href="([^"]+\/job\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)];
     for (const m of matches) {
-      const link = m[1];
+      const link  = m[1];
       if (!/thepiejobs\.com\/job\//i.test(link)) continue;
-      const title = clean(m[2].replace(/<[^>]*>/g, " "));
+      const title = clean(m[2].replace(/<[^>]*>/g," "));
       if (title && link && !list.some(x => x.original_url === link)) {
         list.push({
           id: link, title, description:"",
@@ -178,17 +179,18 @@ async function scrapePIE() {
   return list;
 }
 
-exports.handler = async (event) => {
+module.exports.handler = async (event) => {
   try {
     const debug = event?.queryStringParameters?.debug === "1";
     const notes = [];
     let jobs = [];
 
-    // Pull from feeds
     for (const s of RSS_SOURCES) {
       try {
         const res = await fetch(s.url, fetchOpts);
         const body = await res.text();
+
+        // Skip if it's clearly an HTML page (not RSS/Atom)
         if (/<(html|head|body)\b/i.test(body) && !/(<rss|<feed|<rdf|<entry|<item)\b/i.test(body)) {
           notes.push(`${s.name}: no RSS here`);
           continue;
@@ -215,7 +217,7 @@ exports.handler = async (event) => {
     }
     let merged = [...map.values()];
 
-    // Optional server-side NEA/SEA filter
+    // Optional server-side Asia filter
     if (STRICT_ASIA_ONLY) {
       merged = merged.filter(j => ASIA_RE.test(
         [j.title, j.description, j.school, j.location, j.city, j.country, j.original_url]
@@ -223,7 +225,7 @@ exports.handler = async (event) => {
       ));
     }
 
-    // Plenty of headroom
+    // headroom
     merged = merged.slice(0, 2000);
 
     if (debug) {
