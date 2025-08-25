@@ -1,66 +1,79 @@
-document.addEventListener("DOMContentLoaded", async () => {
-  const jobsContainer = document.getElementById("jobsContainer");
-  const statCount = document.getElementById("statCount");
-  const statUpdated = document.getElementById("statUpdated");
-  const statNext = document.getElementById("statNext");
 
-  // Utility: format date
-  const formatDate = (d) =>
-    new Date(d).toLocaleDateString("en-GB", {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
+const API_ENDPOINT = '/.netlify/functions/fetch_jobs';
+
+const dom = {
+  container: document.getElementById('jobsContainer'),
+  statCount: document.getElementById('statCount'),
+  statUpdated: document.getElementById('statUpdated'),
+  statNext: document.getElementById('statNext'),
+  emptyState: document.getElementById('emptyState'),
+};
+
+function formatDate(date) {
+  if (!date) return '—';
+  return new Date(date).toLocaleString('en-GB', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+function createJobCard(job) {
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  card.innerHTML = `
+    <h3>${job.title || 'Untitled Position'}</h3>
+    <p class="muted">${job.school || 'Unknown School'} · ${job.location || 'Unknown Location'}</p>
+    <p>${job.description?.slice(0, 200) || ''}</p>
+    <p class="muted small">
+      ${job.category || '—'} · ${job.experience || '—'} · 
+      Posted: ${job.posted ? formatDate(job.posted) : '—'} · 
+      Deadline: ${job.deadline ? formatDate(job.deadline) : '—'}
+    </p>
+    <a class="btn btn-outline" href="${job.url || '#'}" target="_blank">Details</a>
+  `;
+  return card;
+}
+
+async function loadJobs() {
+  dom.container.innerHTML = '';
+  dom.statCount.textContent = 'Loading...';
+
+  try {
+    const res = await fetch(`${API_ENDPOINT}?debug=1`);
+    const data = await res.json();
+
+    const jobs = Array.isArray(data.jobs) ? data.jobs : [];
+
+    if (jobs.length === 0) {
+      dom.emptyState.classList.remove('hidden');
+      dom.statCount.textContent = '0 jobs';
+      dom.statUpdated.textContent = 'Updated: —';
+      dom.statNext.textContent = 'Next check: —';
+      return;
+    }
+
+    dom.emptyState.classList.add('hidden');
+    jobs.forEach(job => {
+      const card = createJobCard(job);
+      dom.container.appendChild(card);
     });
 
-  // Load and render jobs
-  const loadJobs = async () => {
-    try {
-      const res = await fetch("/.netlify/functions/fetch_jobs?debug=1");
+    dom.statCount.textContent = `${jobs.length} job${jobs.length !== 1 ? 's' : ''}`;
+    dom.statUpdated.textContent = `Updated: ${formatDate(data.updated)}`;
+    dom.statNext.textContent = `Next check: ${formatDate(data.nextCheck)}`;
 
-      if (!res.ok) {
-        throw new Error(`Fetch failed: ${res.status}`);
-      }
+  } catch (error) {
+    console.error('Fetch error:', error);
+    dom.container.innerHTML = '';
+    dom.emptyState.classList.remove('hidden');
+    dom.statCount.textContent = 'Error loading jobs.';
+    dom.statUpdated.textContent = 'Updated: —';
+    dom.statNext.textContent = 'Next check: —';
+  }
+}
 
-      const jobs = await res.json();
-
-      if (!Array.isArray(jobs) || jobs.length === 0) {
-        throw new Error("No jobs found in response.");
-      }
-
-      // Update stats
-      statCount.textContent = `${jobs.length} jobs`;
-      statUpdated.textContent = `Updated: ${formatDate(new Date())}`;
-      statNext.textContent = `Next check: ${formatDate(
-        new Date(Date.now() + 6 * 60 * 60 * 1000)
-      )}`; // every 6 hrs
-
-      // Clear previous
-      jobsContainer.innerHTML = "";
-
-      // Render each job
-      jobs.forEach((job) => {
-        const card = document.createElement("div");
-        card.className = "job-card";
-        card.innerHTML = `
-          <h3><a href="${job.link}" target="_blank">${job.title}</a></h3>
-          <p><strong>${job.source || "Unknown Source"}</strong></p>
-          <p>${job.content || "No description available."}</p>
-          <p class="muted">Posted: ${job.pubDate ? formatDate(job.pubDate) : "—"}</p>
-        `;
-        jobsContainer.appendChild(card);
-      });
-    } catch (err) {
-      console.error("Fetch error:", err.message);
-      statCount.textContent = "Error loading jobs.";
-      statUpdated.textContent = "Updated: —";
-      statNext.textContent = "Next check: —";
-      jobsContainer.innerHTML = "<p>⚠️ Could not load job data.</p>";
-    }
-  };
-
-  await loadJobs();
-});
-
+loadJobs();
 
 
 
