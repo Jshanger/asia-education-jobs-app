@@ -1,24 +1,30 @@
 // netlify/functions/fetch_jobs.js
-import fetch from 'node-fetch';
-
 export const handler = async () => {
   try {
+    // Public RSS sources (edit/expand these as needed and only use feeds that allow it)
     const sources = [
-      { name: 'Jobs.ac.uk (international education) RSS', url: 'https://www.jobs.ac.uk/search/feed?keywords=international%20recruitment%20officer%20asia' },
-      { name: 'WISHlistjobs RSS', url: 'https://www.wishlistjobs.com/jobs?search=asia&format=rss' }
+      {
+        name: 'Jobs.ac.uk (East Asia recruitment)',
+        url: 'https://www.jobs.ac.uk/search/feed?keywords=international%20recruitment%20officer%20asia'
+      },
+      {
+        name: 'WISHlistjobs (Asia search)',
+        url: 'https://www.wishlistjobs.com/jobs?search=asia&format=rss'
+      }
     ];
 
-    const clean = (s='') => s.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
+    const clean = (s = '') => s.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
+    const pick = (raw, tag) =>
+      clean((raw.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 'i')) || [, ''])[1]);
 
     const parseRssItems = (xml) => {
-      const itemBlocks = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)];
-      return itemBlocks.map(m => {
+      const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)];
+      return items.map((m) => {
         const raw = m[1];
-        const pick = (tag) => clean((raw.match(new RegExp(`<${tag}>([\s\S]*?)<\/${tag}>`, 'i'))||[, ''])[1]);
-        const title = pick('title');
-        const link = pick('link');
-        const desc = pick('description');
-        const pub = pick('pubDate');
+        const title = pick(raw, 'title');
+        const link = pick(raw, 'link');
+        const desc = pick(raw, 'description');
+        const pub = pick(raw, 'pubDate');
         return {
           id: link || title,
           title,
@@ -45,11 +51,11 @@ export const handler = async () => {
         const xml = await res.text();
         jobs.push(...parseRssItems(xml));
       } catch (err) {
-        console.error('Failed source:', s.name, err.message);
+        console.error('Source failed:', s.name, err);
       }
     }
 
-    // de-dupe by URL
+    // De-dupe by URL
     const map = new Map();
     for (const j of jobs) {
       const key = j.original_url || j.apply_url || j.id;
@@ -65,3 +71,4 @@ export const handler = async () => {
     return { statusCode: 500, body: e.message };
   }
 };
+
