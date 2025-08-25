@@ -2,7 +2,7 @@
    CURATED ASIA COUNTRIES + CATEGORIES
    ========================================= */
 
-// Region lists
+// Region lists (used to build <optgroup>s)
 const NEA = ['China','Hong Kong SAR','Macao SAR','Taiwan','Japan','South Korea','North Korea','Mongolia'];
 const SEA = ['Brunei','Cambodia','Indonesia','Laos','Malaysia','Myanmar','Philippines','Singapore','Thailand','Timor-Leste','Vietnam'];
 const SOUTH_ASIA = ['India','Pakistan','Bangladesh','Sri Lanka','Nepal','Bhutan','Maldives','Afghanistan'];
@@ -13,7 +13,6 @@ const WEST_ASIA = [
   'Georgia','Armenia','Azerbaijan'
 ];
 
-// Grouped for <optgroup>
 const COUNTRY_GROUPS = [
   { label: 'Northeast Asia', items: NEA },
   { label: 'Southeast Asia', items: SEA },
@@ -22,11 +21,14 @@ const COUNTRY_GROUPS = [
   { label: 'West Asia / Middle East', items: WEST_ASIA },
 ];
 
-// Regex normalisation (maps aliases in feed text to our labels)
+const ALL_CURATED_COUNTRIES = COUNTRY_GROUPS.flatMap(g => g.items);
+
+// Patterns to normalise country strings from feeds/locations
 const COUNTRY_PATTERNS = [
   { re: /hong\s*kong/i,               name: 'Hong Kong SAR' },
-  { re: /macau|macao/i,               name: 'Macao SAR' },
-  { re: /\bchina\b|mainland/i,        name: 'China' },
+  { re: /macau|macao/i,               name: 'Maco SAR' }, // typo fixed in normalizeCountry
+  { re: /\bmacau\b|\bmacao\b/i,       name: 'Macao SAR' },
+  { re: /\bchina\b|prc|mainland/i,    name: 'China' },
   { re: /taiwan/i,                    name: 'Taiwan' },
   { re: /japan/i,                     name: 'Japan' },
   { re: /south\s*korea|republic.*korea|\bkorea\b(?!.*north)/i, name: 'South Korea' },
@@ -80,7 +82,7 @@ const COUNTRY_PATTERNS = [
   { re: /azerbaijan/i,                         name: 'Azerbaijan' },
 ];
 
-// Category groups (broad and practical)
+// Categories (curated) with grouping
 const CATEGORY_GROUPS = [
   { label: 'Teaching & Academic', items: [
     'Early Years Teaching','Primary Teaching','Secondary Teaching','IB (PYP/MYP/DP)','IGCSE','EAL / ESL',
@@ -104,13 +106,10 @@ const CATEGORY_GROUPS = [
     'Digital Marketing','Events'
   ]},
 ];
-
-// Flatteners
-const ALL_CURATED_COUNTRIES = COUNTRY_GROUPS.flatMap(g => g.items);
 const ALL_CURATED_CATEGORIES = CATEGORY_GROUPS.flatMap(g => g.items);
 
 /* =========================================
-   GENERIC HELPERS
+   HELPERS
    ========================================= */
 function mergeDedup(existing, incoming) {
   const toKey = (j) => (j?.original_url || j?.apply_url || j?.id || '').toString().trim();
@@ -120,10 +119,11 @@ function mergeDedup(existing, incoming) {
 }
 function cleanText(html) {
   if (!html) return '';
-  return String(html).replace(/<[^>]*>/g,' ')
-    .replace(/&nbsp;|&#160;/g,' ')
-    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
-    .replace(/&#\d+;|&[a-z]+;/gi,' ')
+  return String(html)
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;|&#160;/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+    .replace(/&#\d+;|&[a-z]+;/gi, ' ')
     .replace(/\s+/g,' ').trim();
 }
 function sanitizeDesc(s) {
@@ -192,7 +192,7 @@ class JobApp {
     this.lastUpdate = null;
     this.nextUpdate  = null;
 
-    // UI hooks
+    // UI
     this.$container   = document.getElementById('jobsContainer');
     this.$empty       = document.getElementById('emptyState');
     this.$statCount   = document.getElementById('statCount');
@@ -214,7 +214,7 @@ class JobApp {
     this.$applyBtn   = document.getElementById('applyJobBtn');
 
     this.bindEvents();
-    this.hideModal(); // safety
+    this.hideModal();      // safety
     this.init();
   }
 
@@ -224,6 +224,7 @@ class JobApp {
     this.$country?.addEventListener('change', apply);
     this.$category?.addEventListener('change', apply);
     this.$sort?.addEventListener('change', apply);
+
     this.$closeModal?.addEventListener('click', () => this.hideModal());
     this.$modal?.addEventListener('click', (e) => { if (e.target === this.$modal) this.hideModal(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') this.hideModal(); });
@@ -233,18 +234,18 @@ class JobApp {
     await this.loadLocal();
     await this.loadLive();
     this.applyFilters();
-    this.populateFilters(); // uses curated lists, not just data
+    this.populateFilters(); // curated + extras
     this.renderJobs();
     this.updateStats();
   }
 
-  // ------- data loaders -------
+  /* -------- data loaders -------- */
   async loadLocal() {
     try {
-      const j = p => fetch(p,{cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error(`${p} ${r.status}`); return r.json(); });
-      const [a,b]=await Promise.allSettled([
-        j('real_asia_education_jobs.json'),
-        j('asia_education_jobs_database.json')
+      const fetchJSON = p => fetch(p,{cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error(`${p} ${r.status}`); return r.json(); });
+      const [a,b] = await Promise.allSettled([
+        fetchJSON('real_asia_education_jobs.json'),
+        fetchJSON('asia_education_jobs_database.json')
       ]);
       const arr1 = a.status==='fulfilled' ? (Array.isArray(a.value)?a.value:[]) : [];
       const raw2 = b.status==='fulfilled' ? b.value : null;
@@ -272,11 +273,11 @@ class JobApp {
 
   async loadLive() {
     try {
-      const r=await fetch('/.netlify/functions/fetch_jobs',{cache:'no-store'});
+      const r = await fetch('/.netlify/functions/fetch_jobs',{cache:'no-store'});
       if(!r.ok) throw new Error(`fn ${r.status}`);
-      const live=await r.json();
+      const live = await r.json();
 
-      const cleaned=(live||[]).map(j => {
+      const cleaned = (live||[]).map(j => {
         const job = enrichFromTitle({
           ...j,
           posting_date: j.posting_date ? new Date(j.posting_date) : null,
@@ -293,19 +294,17 @@ class JobApp {
     } catch (e) { console.warn('Live load warn',e.message); }
   }
 
-  // ------- filters UI -------
+  /* -------- filters UI -------- */
   populateFilters() {
-    // Countries: curated groups FIRST; then add any extras from data into an "Other" optgroup
+    // Countries: curated groups FIRST; then extras from data in an "Other (from data)" group
     const fromData = [...new Set(this.jobs.map(j => j.country).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
     const curatedSet = new Set(ALL_CURATED_COUNTRIES);
     const extras = fromData.filter(c => !curatedSet.has(c));
 
     if (this.$country) {
-      // build with optgroups
-      this.$country.innerHTML = ''; // clear
+      this.$country.innerHTML = '';
       const optAll = document.createElement('option');
-      optAll.value = '';
-      optAll.textContent = 'All countries';
+      optAll.value = ''; optAll.textContent = 'All countries';
       this.$country.appendChild(optAll);
 
       COUNTRY_GROUPS.forEach(group => {
@@ -331,7 +330,7 @@ class JobApp {
       }
     }
 
-    // Categories: curated groups FIRST; extras in "Other (from data)"
+    // Categories: curated + extras
     const catsFromData = [...new Set(this.jobs.map(j => j.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
     const curatedCats = new Set(ALL_CURATED_CATEGORIES);
     const catExtras = catsFromData.filter(c => !curatedCats.has(c));
@@ -339,8 +338,7 @@ class JobApp {
     if (this.$category) {
       this.$category.innerHTML = '';
       const optAll = document.createElement('option');
-      optAll.value = '';
-      optAll.textContent = 'All categories';
+      optAll.value = ''; optAll.textContent = 'All categories';
       this.$category.appendChild(optAll);
 
       CATEGORY_GROUPS.forEach(group => {
@@ -367,7 +365,7 @@ class JobApp {
     }
   }
 
-  // ------- filtering & render -------
+  /* -------- filter + render -------- */
   applyFilters() {
     const q=(this.$search?.value||'').trim().toLowerCase(),
           c=this.$country?.value||'',
@@ -422,7 +420,7 @@ class JobApp {
         </div>
       `;
       card.querySelector('[data-open-modal]')?.addEventListener('click', ()=> this.openJobModal(job));
-      this.$container.appendChild(card);
+      c.appendChild(card);
     });
     this.updateStats();
   }
@@ -437,29 +435,29 @@ class JobApp {
     const meta     = [school, loc].filter(Boolean).join(' · ');
     const desc     = job.description || 'No description provided.';
 
-    this.$modalTitle.textContent = title;
-    this.$modalMeta.textContent  = meta;
-    this.$modalMeta.style.display = meta ? '' : 'none';
-    this.$modalDesc.textContent  = desc;
-    this.$viewBtn.href = viewUrl;
-    this.$applyBtn.href = applyUrl;
+    if (this.$modalTitle) this.$modalTitle.textContent = title;
+    if (this.$modalMeta)  { this.$modalMeta.textContent = meta; this.$modalMeta.style.display = meta ? '' : 'none'; }
+    if (this.$modalDesc)  this.$modalDesc.textContent  = desc;
+    if (this.$viewBtn)    this.$viewBtn.href = viewUrl;
+    if (this.$applyBtn)   this.$applyBtn.href = applyUrl;
 
-    this.$modal.classList.remove('hidden');
-    this.$modal.setAttribute('aria-hidden','false');
+    this.$modal?.classList.remove('hidden');
+    this.$modal?.setAttribute('aria-hidden','false');
   }
   hideModal(){
-    this.$modal.classList.add('hidden');
-    this.$modal.setAttribute('aria-hidden','true');
+    this.$modal?.classList.add('hidden');
+    this.$modal?.setAttribute('aria-hidden','true');
   }
 
   updateStats(){
-    this.$statCount.textContent   = `${this.filteredJobs.length} job${this.filteredJobs.length===1?'':'s'}`;
-    this.$statUpdated.textContent = `Updated: ${this.lastUpdate ? this.lastUpdate.toLocaleString() : '—'}`;
-    this.$statNext.textContent    = `Next check: ${this.nextUpdate ? this.nextUpdate.toLocaleString() : '—'}`;
+    if (this.$statCount)   this.$statCount.textContent   = `${this.filteredJobs.length} job${this.filteredJobs.length===1?'':'s'}`;
+    if (this.$statUpdated) this.$statUpdated.textContent = `Updated: ${this.lastUpdate ? this.lastUpdate.toLocaleString() : '—'}`;
+    if (this.$statNext)    this.$statNext.textContent    = `Next check: ${this.nextUpdate ? this.nextUpdate.toLocaleString() : '—'}`;
   }
 }
 
 document.addEventListener('DOMContentLoaded',()=>new JobApp());
+
 
 
 
