@@ -1,62 +1,62 @@
 const Parser = require('rss-parser');
-const parser = new Parser();
+const parser = new Parser({
+  timeout: 5000,
+});
 
-// Replace with a few reliable URLs to begin with.
-const urls = [
-  'https://www.jobs.ac.uk/search/?format=rss&keywords=asia%20education',
-  'https://www.jobs.ac.uk/search/?format=rss&keywords=china%20education'
+const RSS_FEEDS = [
+  'https://academicpositions.com/jobs.rss',
+  'https://www.jobs.ac.uk/search/?q=international+student+recruitment&sort=1&rss=1',
+  'https://careers.insidehighered.com/jobsrss/?keywords=asia+education',
+  'https://www.timeshighereducation.com/unijobs/rss/?keywords=asia+education',
+  'https://www.schrole.com/rss/jobs',
+  'https://rss.jobsearch.monster.com/rssquery.ashx?q=international+education&where=Asia&rad=20&rad_units=miles&cy=US&pp=25&sort=rv.di.dt',
 ];
 
-const TIMEOUT = 5000; // ms per feed
-
-function fetchWithTimeout(url, timeout = TIMEOUT) {
-  return new Promise((resolve, reject) => {
-    const controller = new AbortController();
-    const id = setTimeout(() => {
-      controller.abort();
-      reject(new Error('Timeout'));
-    }, timeout);
-
-    fetch(url, { signal: controller.signal })
-      .then(res => res.text())
-      .then(resolve)
-      .catch(reject)
-      .finally(() => clearTimeout(id));
-  });
-}
-
-exports.handler = async function () {
+// Helper to fetch and parse all feeds safely
+async function fetchAllFeeds() {
   const jobs = [];
 
-  for (const url of urls) {
+  for (const url of RSS_FEEDS) {
     try {
-      const xml = await fetchWithTimeout(url);
-      const feed = await parser.parseString(xml);
+      const feed = await parser.parseURL(url);
       feed.items.forEach(item => {
         jobs.push({
-          title: item.title,
-          url: item.link,
-          description: item.contentSnippet || '',
-          posted: item.pubDate || '',
-          source: url
+          title: item.title || '',
+          link: item.link || '',
+          content: item.contentSnippet || '',
+          pubDate: item.pubDate || '',
+          source: feed.title || '',
         });
       });
     } catch (err) {
-      console.warn(`Failed to fetch ${url}:`, err.message);
+      console.error(`❌ Failed to fetch ${url}:`, err.message);
     }
   }
 
-  return {
-    statusCode: 200,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jobs,
-      updated: new Date().toISOString(),
-      nextCheck: new Date(Date.now() + 1000 * 60 * 60).toISOString()
-    })
-  };
-};
+  return jobs;
+}
 
+exports.handler = async function (event, context) {
+  try {
+    const jobs = await fetchAllFeeds();
+
+    if (!jobs.length) {
+      console.warn("⚠️ No jobs fetched from RSS feeds.");
+    }
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify(jobs),
+    };
+  } catch (err) {
+    console.error('❌ Error in fetch_jobs:', err.message);
+
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Failed to load jobs' }),
+    };
+  }
+};
 
 
 
