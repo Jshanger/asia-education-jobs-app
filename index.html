@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asia Education Jobs</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Asia Education Jobs</h1>
+    <div class="controls">
+      <input id="searchInput" type="search" placeholder="Search title, school, location..." />
+      <select id="countryFilter">
+        <option value="">All countries</option>
+      </select>
+      <select id="categoryFilter">
+        <option value="">All categories</option>
+      </select>
+      <select id="sortBy">
+        <option value="date_desc">Newest</option>
+        <option value="date_asc">Oldest</option>
+        <option value="title_asc">Title A–Z</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="statsBar" class="stats">
+      <span id="statCount">0 jobs</span>
+      <span id="statUpdated">Updated: —</span>
+      <span id="statNext">Next check: —</span>
+    </section>
+
+    <section id="emptyState" class="empty hidden">
+      <h2>No results</h2>
+      <p>Try clearing filters or changing your search.</p>
+    </section>
+
+    <section id="jobsContainer" class="grid"></section>
+  </main>
+
+  <!-- Modal -->
+  <div id="jobModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-box">
+      <button id="closeModal" class="close-btn" aria-label="Close">×</button>
+      <h3 id="modalJobTitle"></h3>
+      <p class="muted"><span id="modalJobSchool"></span> · <span id="modalJobLocation"></span></p>
+      <p id="modalJobDescription" class="desc"></p>
+      <div class="modal-actions">
+        <a id="viewPostingBtn" class="btn btn-secondary" href="#" target="_blank" rel="noopener noreferrer">View posting</a>
+        <a id="applyJobBtn" class="btn btn-primary" href="#" target="_blank" rel="noopener noreferrer">Apply</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

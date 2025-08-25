@@ -1,0 +1,34 @@
+[
+  {
+    "id": "wish-12345",
+    "title": "IB Mathematics Teacher",
+    "school": "Pearl International School",
+    "location": "Shanghai",
+    "country": "China",
+    "city": "Shanghai",
+    "source": "WISHlistjobs",
+    "posting_date": "2025-07-20",
+    "application_deadline": null,
+    "category": "K-12 Teaching",
+    "experience_level": "3+ years",
+    "description": "Teach IB DP/IGCSE Maths; collaborate with international faculty; benefits package included.",
+    "original_url": "https://www.wishlistjobs.com/job/example-ib-maths-shanghai",
+    "apply_url": "https://www.wishlistjobs.com/job/example-ib-maths-shanghai/apply"
+  },
+  {
+    "id": "uni-67890",
+    "title": "International Recruitment Officer (East Asia)",
+    "school": "University of Example",
+    "location": "Hong Kong",
+    "country": "Hong Kong SAR",
+    "city": "Hong Kong",
+    "source": "Jobs.ac.uk",
+    "posting_date": "2025-08-01",
+    "application_deadline": "2025-09-15",
+    "category": "University Professional",
+    "experience_level": "Mid-level",
+    "description": "Manage recruitment activities in East Asia; travel required; knowledge of UK HE preferred.",
+    "original_url": "https://www.jobs.ac.uk/job/example-east-asia-officer",
+    "apply_url": "https://www.jobs.ac.uk/job/example-east-asia-officer/apply"
+  }
+]

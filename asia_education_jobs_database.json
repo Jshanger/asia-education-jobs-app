@@ -1,0 +1,24 @@
+{
+  "metadata": {
+    "generated_on": "2025-08-25",
+    "source_note": "Replace with your real data exports; fields matched by app.js."
+  },
+  "jobs": [
+    {
+      "id": "schrole-24680",
+      "title": "Primary Homeroom Teacher",
+      "school": "Green Valley International",
+      "location": "Bangkok",
+      "country": "Thailand",
+      "city": "Bangkok",
+      "source": "Schrole",
+      "posting_date": "2025-08-10",
+      "application_deadline": "2025-09-30",
+      "category": "K-12 Teaching",
+      "experience_level": "2+ years",
+      "description": "Teach primary classes; ESL-friendly environment; professional development provided.",
+      "original_url": "https://www.schrole.com/job/example-bkk-primary",
+      "apply_url": "https://www.schrole.com/job/example-bkk-primary/apply"
+    }
+  ]
+}
