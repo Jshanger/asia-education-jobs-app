@@ -1,57 +1,79 @@
 const API_ENDPOINT = '/.netlify/functions/fetch_jobs';
 
-async function fetchJobs(debug = false) {
-  try {
-    const url = debug ? `${API_ENDPOINT}?debug=1` : API_ENDPOINT;
-    const response = await fetch(url);
+const dom = {
+  container: document.getElementById('jobsContainer'),
+  statCount: document.getElementById('statCount'),
+  statUpdated: document.getElementById('statUpdated'),
+  statNext: document.getElementById('statNext'),
+  emptyState: document.getElementById('emptyState'),
+};
 
-    if (!response.ok) {
-      throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    if (!Array.isArray(data)) {
-      throw new Error('Invalid jobs format from API');
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error fetching jobs:', error);
-    document.getElementById('jobs-container').innerHTML = `<p style="color:red;">Error loading jobs. ${error.message}</p>`;
-    return [];
-  }
-}
-
-function renderJobs(jobs) {
-  const container = document.getElementById('jobs-container');
-  container.innerHTML = '';
-
-  if (jobs.length === 0) {
-    container.innerHTML = '<p>No jobs found.</p>';
-    return;
-  }
-
-  jobs.forEach(job => {
-    const jobCard = document.createElement('div');
-    jobCard.classList.add('job-card');
-
-    jobCard.innerHTML = `
-      <h3>${job.title}</h3>
-      <p><strong>${job.school}</strong> &bullet; ${job.city || job.location || ''}</p>
-      <p>${job.description?.slice(0, 200) || ''}</p>
-      <p><small>Posted: ${new Date(job.posting_date).toLocaleDateString()}</small></p>
-      <a href="${job.original_url}" target="_blank" class="details-button">Details</a>
-    `;
-
-    container.appendChild(jobCard);
+function formatDate(date) {
+  if (!date) return '—';
+  return new Date(date).toLocaleString('en-GB', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
   });
 }
 
-// Init on load
-document.addEventListener('DOMContentLoaded', async () => {
-  const jobs = await fetchJobs(); // use `fetchJobs(true)` for debug mode
-  renderJobs(jobs);
-});
+function createJobCard(job) {
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  card.innerHTML = `
+    <h3>${job.title || 'Untitled Position'}</h3>
+    <p class="muted">${job.school || 'Unknown School'} · ${job.location || 'Unknown Location'}</p>
+    <p>${job.description?.slice(0, 200) || ''}</p>
+    <p class="muted small">
+      ${job.category || '—'} · ${job.experience || '—'} · 
+      Posted: ${job.posted ? formatDate(job.posted) : '—'} · 
+      Deadline: ${job.deadline ? formatDate(job.deadline) : '—'}
+    </p>
+    <a class="btn btn-outline" href="${job.url || '#'}" target="_blank">Details</a>
+  `;
+  return card;
+}
+
+async function loadJobs() {
+  dom.container.innerHTML = '';
+  dom.statCount.textContent = 'Loading...';
+
+  try {
+    const res = await fetch(`${API_ENDPOINT}?debug=1`);
+    const data = await res.json();
+
+    const jobs = Array.isArray(data.jobs) ? data.jobs : [];
+
+    if (jobs.length === 0) {
+      dom.emptyState.classList.remove('hidden');
+      dom.statCount.textContent = '0 jobs';
+      dom.statUpdated.textContent = 'Updated: —';
+      dom.statNext.textContent = 'Next check: —';
+      return;
+    }
+
+    dom.emptyState.classList.add('hidden');
+    jobs.forEach(job => {
+      const card = createJobCard(job);
+      dom.container.appendChild(card);
+    });
+
+    dom.statCount.textContent = `${jobs.length} job${jobs.length !== 1 ? 's' : ''}`;
+    dom.statUpdated.textContent = `Updated: ${formatDate(data.updated)}`;
+    dom.statNext.textContent = `Next check: ${formatDate(data.nextCheck)}`;
+
+  } catch (error) {
+    console.error('Fetch error:', error);
+    dom.container.innerHTML = '';
+    dom.emptyState.classList.remove('hidden');
+    dom.statCount.textContent = 'Error loading jobs.';
+    dom.statUpdated.textContent = 'Updated: —';
+    dom.statNext.textContent = 'Next check: —';
+  }
+}
+
+loadJobs();
+
 
 
 
