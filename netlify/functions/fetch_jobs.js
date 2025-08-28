@@ -9,7 +9,7 @@ const RSS_FEEDS = [
   'https://careers.insidehighered.com/jobsrss/?keywords=asia+education',
   'https://www.timeshighereducation.com/unijobs/rss/?keywords=asia+education',
   'https://www.schrole.com/rss/jobs',
-  'https://rss.jobsearch.monster.com/rssquery.ashx?q=international+education&where=Asia&rad=20&rad_units=miles&cy=US&pp=25&sort=rv.di.dt',
+  'https://rss.jobsearch.monster.com/rssquery.ashx?q=international+education&where=Asia&rad=20&rad_units=miles&cy=US&pp=25&sort=rv.di.dt'
 ];
 
 // Helper to fetch and parse all feeds safely
